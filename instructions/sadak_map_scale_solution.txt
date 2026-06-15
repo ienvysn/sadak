@@ -1,0 +1,191 @@
+SADAK MAP SCALE SOLUTION - REFERENCE DOCUMENT
+
+===============================================================================
+TAB 1: THE SCALE PROBLEM
+===============================================================================
+
+UNDERSTANDING THE REAL-WORLD SCALE PROBLEM
+------------------------------------------
+The section of Kathmandu you are mapping (roughly Thamel to Ring Road — about 2–3 km across) at 1:1 scale at 32px per tile would be:
+
+1 tile = 32px. 1 tile represents how much real world?
+
+- If 1 tile = 5 metres real world: 3km = 600 tiles wide. Map = 600×600 tiles = 360,000 tiles. Impossible to build and slow to render.
+- If 1 tile = 10 metres: 3km = 300 tiles wide. Still 90,000 tiles. Too big.
+- If 1 tile = 20 metres: 3km = 150 tiles wide. 22,500 tiles. Manageable but roads become 1–2 tiles wide = impossibly narrow.
+
+This is why 1:1 is not feasible. The scale must be abstract — not real world.
+
+
+THE PLAYER MOVEMENT QUESTION
+----------------------------
+The player does NOT move tile by tile. The car moves in pixels, smoothly, with physics. Tiles are just the visual grid underneath. The car can be in between tiles at any moment — the tile grid is only used for collision detection and special tile effects (potholes, cop zones etc).
+
+So scale is not about "how many tiles to cross" — it is about "how long does it feel to travel from A to B." That is a tuning problem, solved by adjusting car speed.
+
+
+THE THREE VARIABLES YOU CONTROL INDEPENDENTLY
+---------------------------------------------
+1. Map size (tiles) — how many tiles wide/tall is the map
+   Determines how much world exists. Bigger = more to explore but harder to build.
+
+2. Tile size (pixels) — how many pixels is each tile on screen
+   Determines visual detail. 32px = detailed. 16px = smaller, more fits on screen. Can also zoom the camera.
+
+3. Car speed (pixels/second) — how fast the car moves
+   Determines how long journeys feel. Completely independent of map size or tile size. Tuned in code.
+
+Summary: These three variables are independent. You can have a small map that feels large because the car moves slowly. Or a large map that feels small because the car moves fast. Journey time is entirely controlled by car speed, not map size.
+
+
+===============================================================================
+TAB 2: THE SOLUTION
+===============================================================================
+
+THE RECOMMENDED SOLUTION FOR SADAK
+----------------------------------
+[RECOMMENDED]
+1 tile = 16px on screen. Map = 200×150 tiles. Camera zoom = 1×.
+
+This gives a map that is 3200×2400 pixels — large enough to feel like a real city section, small enough to build in 3 weeks. Roads are 3 tiles wide (48px) for main roads, 2 tiles (32px) for normal streets, 1 tile (16px) for narrow gallis.
+
+The car moves at ~120–200 pixels/second. A cross-city journey (full 3200px width) at 160px/s takes 20 real seconds — perfect for a 6-8 minute day with multiple rides.
+
+
+WHY 16PX TILES INSTEAD OF 32PX
+------------------------------
+- More map fits on screen: At 16px tiles, a 1280×720 screen shows 80×45 tiles at once — you see a much wider area of the city without scrolling. At 32px you only see 40×22 tiles — the city feels cramped.
+- Roads have more width variety: Ring Road = 4 tiles wide (64px). Normal road = 2 tiles (32px). Galli = 1 tile (16px). This variety makes the city feel real. At 32px tiles, a 1-tile galli would be 32px — too wide for a narrow lane feel.
+- Buildings feel properly large: A 3×4 tile building at 16px = 48×64px on screen. A mall at 8×6 tiles = 128×96px. These proportions feel right for the scale of the city.
+
+Note: The tileset PNG tiles are still drawn at 16×16 pixels each. This is small — you need to work at high zoom in Aseprite (16× or 32× zoom). OR: draw at 32×32 and scale down on export. The detail is less but it renders correctly at game size.
+
+
+ALTERNATIVE: 32PX TILES WITH CAMERA ZOOM OUT
+--------------------------------------------
+Draw at 32×32 but zoom camera to 0.5×:
+Draw all tiles at 32×32 (easier to draw detail). In LÖVE2D, scale the camera to 0.5 — everything renders at 16px on screen but was drawn at 32px. Best of both worlds: easier to draw, correct on-screen size. This is actually the cleanest approach for Person B.
+
+Final recommendation: Draw tileset at 32×32px (easier to draw detail). Set camera zoom to 0.5× in LÖVE2D. Tiles render at 16px on screen. Map feels large. Art is easy to draw. One line of code: love.graphics.scale(0.5) before drawing the map.
+
+
+===============================================================================
+TAB 3: PLAYER MOVEMENT
+===============================================================================
+
+HOW PLAYER MOVEMENT ACTUALLY WORKS AT THIS SCALE
+------------------------------------------------
+The car moves in pixels per second — completely smooth, not tile-by-tile. At camera zoom 0.5×, the car moves 160 screen pixels/second = 320 actual map pixels/second. On a 3200px wide map, crossing the full width takes 10 seconds at max speed. In practice you never go full speed the whole way — traffic, turns, potholes slow you down.
+
+
+JOURNEY TIME CALCULATIONS — WILL RIDES FEEL RIGHT?
+--------------------------------------------------
+- Short ride (Thamel to Durbar Marg): ~8s
+- Medium ride (Thamel to New Baneshwor): ~20s
+- Long ride (Thamel to Airport): ~40s
+- Rides per 7-minute day (realistic): 4–6
+
+This feels correct for a 7-minute day:
+4–6 rides per day, each 8–40 seconds. Plus time navigating, waiting at petrol station, dodging traffic. A full day fills naturally without feeling empty or rushed. If rides feel too fast -> reduce car speed. Too slow -> increase speed. Tuned entirely in code, map never changes.
+
+
+VEHICLE SPEED SCALE
+-------------------
+- Bajaj 100cc: 180 map px/s (renders as 90 screen px/s at 0.5× zoom). Fast in narrow lanes, slow on highway.
+- Pulsar 150: 240 map px/s. Noticeably faster — upgrading feels meaningful.
+- Maruti 800: 280 map px/s. Faster but wider — cannot enter gallis.
+- Hyundai i10: 320 map px/s. Premium feel — city moves past faster.
+- Speed cap on gallis: Any vehicle: max 120 map px/s in 1-tile-wide roads. Forces careful navigation.
+- Speed cap on pothole tiles: Auto-reduced to 50% of current speed for 0.5s on hit.
+
+
+===============================================================================
+TAB 4: MAP SIZE NUMBERS
+===============================================================================
+
+FINAL MAP SIZE DECISION
+-----------------------
+- Map: 200 tiles wide × 160 tiles tall (non-rectangular — see below)
+- Tile size drawn: 32×32px
+- Camera zoom: 0.5× (renders at 16px on screen)
+- Total map pixels: 6400×5120 (drawn) -> 3200×2560 (on screen)
+- Total tiles: 32,000 — absolutely buildable in 3 weeks
+
+
+WHAT 200×160 TILES GIVES YOU
+----------------------------
+- Ring Road perimeter: ~120 tiles across the outer loop. Feels like a real city perimeter at this scale.
+- Road widths: Ring Road: 4 tiles. Main roads: 2–3 tiles. Side streets: 2 tiles. Gallis: 1 tile.
+- Building blocks: A city block (buildings + footpath) is 8–12 tiles wide. Fits ~10–15 blocks across the map — enough to feel dense.
+- Landmark space: Boudhanath stupa: 6×6 tiles. Durbar Square: 8×10 tiles. Airport: 15×8 tiles. All fit naturally.
+- Time to build: At 2 hours per day of map work: Person A can build this in 2–3 weeks. Reasonable.
+
+
+NON-RECTANGULAR MAP — HOW TILED HANDLES IT
+------------------------------------------
+Tiled maps are always rectangular grids. But the playable area does not have to be. The trick: make the map rectangle (200×160) but fill non-playable areas with solid black/void tiles that have collision. The player cannot enter void areas — the map looks irregular because everything outside the Kathmandu shape is blocked wall.
+
+Simplified Map Grid Visualization:
+[  Void  ][  Void  ][  Void  ][  Void  ][  Void  ][  Void  ]
+[  Void  ][  Road  ][ Grass ][Building][  Road  ][  Void  ]
+[  Void  ][Building][Thamel ][Building][ Grass ][  Void  ]
+[  Void  ][  Road  ][ Ring Road (RR)  ][  Road  ][  Void  ]
+[  Void  ][  Void  ][ Highway ][ Airport][  Void  ][  Void  ]
+
+Legend:
+- Black / Void = wall (unplayable boundary area)
+- Grey / Road = drivable path
+- Blue / Building = urban structure (collision)
+- Green / Grass = parks/scenery
+- Landmarks included: T (Thamel), BH (Boudhanath), M (Mall), PT (Patan), RR (Ring Road), HW (Highway), AIR (Airport)
+
+
+===============================================================================
+TAB 5: BLOCKING EXPLORATION
+===============================================================================
+
+BLOCKING EXPLORATION — THREE METHODS
+------------------------------------
+Method 1 — Void tiles (recommended)
+Fill out-of-bounds areas with a solid black tile that has collides = true
+The simplest and most flexible approach. Anywhere you don't want the player to go, paint a black/dark void tile. The car bounces off it like a building. Person A can shape the playable area to any irregular shape by placing void tiles on the edges. The player sees a black boundary and understands not to go there.
+
+Method 2 — Dense building blocks
+Block roads with walls of buildings where the real map has them
+On the real Kathmandu reference image, many streets dead-end into dense building clusters. Just continue that — a road that goes off-map in real life simply runs into buildings in the game. Looks natural. The player assumes the road ends there.
+
+Method 3 — Road closed signs
+Place a barrier tile or sign object at roads you want to block
+For roads that visually look like they should continue but you don't want to map — place a construction barrier, a wall, or a "Road closed" sign tile. Common in Kathmandu anyway. Feels authentic. Behind the sign, fill with void tiles.
+
+
+HOW TO HANDLE THE PERIMETER BOUNDARY
+------------------------------------
+The Ring Road is your natural outer boundary. Roads that cross the Ring Road and head outward just end: either in void tiles, or in a dense building cluster, or behind a "City limits" style barrier. The player can drive the Ring Road perimeter but cannot go outside it. Since Ring Road is a real circular road, this feels completely natural — you just can't leave the ring.
+
+
+===============================================================================
+TAB 6: TILESET IMPACT
+===============================================================================
+
+DOES THE MAP SIZE CHANGE WHAT TILES YOU NEED?
+---------------------------------------------
+Good news: the tile list does not change based on map size. Whether your map is 100×100 or 200×160, you use the same tiles — you just place more of them. The tileset PNG stays the same 256×256 file. Map size only affects how long it takes Person A to build, not what Person B draws.
+
+
+WHAT DOES CHANGE WITH 16PX VS 32PX ON SCREEN
+--------------------------------------------
+- Detail visible per tile: At 16px on screen, very fine pixel art detail is invisible. Keep tile art simple — solid colours, clear silhouettes, no tiny 1px details. They will not render at game size.
+- Drawing approach: Draw at 32×32 in Aseprite. Keep it readable at 16×16 (zoom out to check). Export at 32×32. Camera does the scaling. Person B draws bigger, game shows smaller.
+- Road marking tiles: Lane lines and zebra crossings at 16px screen size are still visible — they are high-contrast (white on grey). Fine to include. Window details on buildings will be invisible — skip them.
+- Building variation: At small scale, slight colour variations between building tiles are more important than drawn detail. Blue-grey buildings vs red-brown buildings vs cream buildings creates readable district variety.
+
+
+FINAL CONFIRMED SPEC FOR PERSON B
+----------------------------------
+- Draw all tiles at 32×32 pixels in Aseprite.
+- Export tileset as 256×256 PNG (8 tiles wide × 8 tiles tall grid).
+- Use high-contrast colours — they must read clearly at half size.
+- No 1px details — minimum feature size is 3×3 pixels.
+- Test readability: zoom out to 50% in Aseprite before finalising any tile.
+- Export as PNG only (never JPEG).
